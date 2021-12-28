@@ -77,11 +77,19 @@ def build_dictionary(destinations, stations, timestamps, number_of_stations_firs
 	first_direction = dict(zip(first_direction_stations, first_direction_timestamps))
 	second_direction = dict(zip(second_direction_stations, second_direction_timestamps))
 
-	print("First direction: ", first_direction)
-	print("Second direction: ", second_direction)
+	dict_list = [first_direction, second_direction]
+	i = 0
+	for dest in destinations:
+		key = dest
+		value = dict_list[0]
+		i = i + 1
+		dictionary[key] = value
 
 	return dictionary
 
 #Use methods built here:
 destinations, stations, timestamps, number_of_stations_first_direction = better_fetch()
-build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
+both_directions = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
+print("Both directions as dict: ")
+print(both_directions.keys())
+print(both_directions.values())
