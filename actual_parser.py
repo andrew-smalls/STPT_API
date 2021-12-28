@@ -30,63 +30,58 @@ html_text = requests.get(full_url).text #do not forget to specify .text, otherwi
 soup = BeautifulSoup(html_text, "lxml") #make a new bs object and specify the parser (lxml in our case)
 
 
-destinations_for_this_route = []
-stations_for_this_route = []
-timestamps_for_this_route = []
-
-def initial_fetch():	#kinda sorta works
-	tables = soup.find_all('table')#, attrs={'bgcolor': '#0048A1'})
-	for table in tables:
-		if table.attrs['bgcolor'] == '0048A1':		#hardcoded color, corresponds to destination name
-			destinations = table.find_all('td')
-			for destination in destinations:
-				destinations_for_this_route.append(destination.text)
-		if table.attrs['bgcolor'] == 'D8D8D8':
-			stations = table.find_all('td', attrs={'align' : 'left'}) #stations are alligned to the left
-			times = table.find_all('td', attrs={'align' : 'center'})	#times are alligned in the center
-			for station in stations:
-				stations_for_this_route.append(station.text)
-			for time in times:
-				timestamps_for_this_route.append(time.text) #cleanTime
 
 
 def better_fetch():
-	tables = soup.find_all('table')#, attrs={'bgcolor': '#0048A1'})
+	destinations_for_this_route = []
+	stations_for_this_route = []
+	timestamps_for_this_route = []
+	number_of_stations_both_ways = []
+	valid_entries = 0 #used to get correct nr of stations that go in both ways
+
+	tables = soup.find_all('table')
 	for table in tables:
-		if table.attrs['bgcolor'] == '0048A1':		#hardcoded color, corresponds to destination name
+		if table.attrs['bgcolor'] == '0048A1':							#hardcoded color, corresponds to destination name
 			destinations = table.find_all('td')
 			for destination in destinations:
 				destinations_for_this_route.append(destination.text)
-		if table.attrs['bgcolor'] == 'D8D8D8':
-			stations = table.find_all('td', attrs={'align' : 'left'}) #stations are alligned to the left
+				number_of_stations_both_ways.append(valid_entries)
+			valid_entries = valid_entries + 1
+		if table.attrs['bgcolor'] == 'D8D8D8':							#hardcoded color, corresponds to stations + times
+			stations = table.find_all('td', attrs={'align' : 'left'}) 	#stations are alligned to the left
 			times = table.find_all('td', attrs={'align' : 'center'})	#times are alligned in the center
+			if len(stations) > 1 or len(times) > 1:	#they missed an </table> inside their html, so we have to do this instead
+				continue
 			for station in stations:
 				stations_for_this_route.append(station.text)
 			for time in times:
-				timestamps_for_this_route.append(time.text) #cleanTime
+				timestamps_for_this_route.append(time.text)
+			valid_entries = valid_entries + 1
+
+	cleanTimestamps = cleanTimeFormat(timestamps_for_this_route)		#data arrives with some unwanted strings, clean first
+	timestamps_for_this_route = cleanAgain(cleanTimestamps)
+	number_of_stations_first_direction = number_of_stations_both_ways[1] - 1 #need to decrement to show correct value
+
+	return [destinations_for_this_route, stations_for_this_route, timestamps_for_this_route, number_of_stations_first_direction]
 
 
-#initial_fetch()
-better_fetch()
+def build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction):
+	dictionary = dict()
 
+	nr_stations =  number_of_stations_first_direction
+	first_direction_stations = stations[0 : nr_stations]
+	second_direction_stations = stations[nr_stations:]
+	first_direction_timestamps = timestamps[0 : nr_stations]
+	second_direction_timestamps = timestamps[nr_stations:]
 
-#print("Destinations fetched: ")
-#printMyList(destinations_for_this_route)
+	first_direction = dict(zip(first_direction_stations, first_direction_timestamps))
+	second_direction = dict(zip(second_direction_stations, second_direction_timestamps))
 
-print("Stations fetched: ")
-printMyList(stations_for_this_route)
+	print("First direction: ", first_direction)
+	print("Second direction: ", second_direction)
 
-cleanTimestamps = cleanTimeFormat(timestamps_for_this_route)
-cleansedAgain = cleanAgain(cleanTimestamps)
-print("Timestamps fetched: ")
-print(cleansedAgain)
+	return dictionary
 
-if len(stations_for_this_route) == len(cleansedAgain):
-	print("Length stations: ", len(stations_for_this_route))
-	print("Length times: ", len(cleansedAgain))
-	stations_timestamps = dict(zip(stations_for_this_route, cleansedAgain)) #{stations_for_this_route[i]:cleansedAgain[i] for i in range(len(stations_for_this_route))}
-else: 
-	print("Lists do not have same size")
-	stations_timestamps = {}
-for entry in stations_timestamps:
-	print(entry)
+#Use methods built here:
+destinations, stations, timestamps, number_of_stations_first_direction = better_fetch()
+build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
