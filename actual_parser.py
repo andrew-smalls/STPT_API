@@ -37,7 +37,7 @@ def better_fetch(soup):
 
 	tables = soup.find_all('table')
 	for table in tables:
-		if table.attrs['bgcolor'] == '0048A1':							#hardcoded color, corresponds to destination name
+		if table.attrs['bgcolor'] == '0048A1' or table.attrs['bgcolor'] == 'E3A900' or table.attrs['bgcolor'] == '6E2094':							#hardcoded color, corresponds to destination name
 			destinations = table.find_all('td')
 			for destination in destinations:
 				destinations_for_this_route.append(destination.text)
@@ -57,20 +57,13 @@ def better_fetch(soup):
 	cleanTimestamps = cleanTimeFormat(timestamps_for_this_route)		#data arrives with some unwanted strings, clean first
 	timestamps_for_this_route = cleanAgain(cleanTimestamps)
 	number_of_stations_first_direction = number_of_stations_both_ways[1] - 1 #need to decrement to show correct value
-	sanitize_data(destinations_for_this_route)
+	sanitize_data(destinations_for_this_route) # the point "." is not permitted in firebase database, get rid of it
 	sanitize_data(stations_for_this_route)
 	sanitize_data(timestamps_for_this_route)
 	return [destinations_for_this_route, stations_for_this_route, timestamps_for_this_route, number_of_stations_first_direction]
 
 def make_iterated_dictionary(someDict):
-	dictionary = dict()
-	i = 0
-	#print("Dictionary before: ", someDict)
-	
-	#dictionary = {key : value for key,value in zip(range(len(someDict)), someDict.items())}
 	dictionary = dict(zip(range(len(someDict)), someDict.items()))
-	#print("This new dict now: ", dictionary.items())
-
 	return dictionary
 
 def assign_destinations(someList, destinations):
@@ -86,45 +79,31 @@ def assign_destinations(someList, destinations):
 def build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction):
 	dictionary = dict()
 
-	nr_stations =  number_of_stations_first_direction
-	first_direction_stations = stations[0 : nr_stations]
+	nr_stations =  number_of_stations_first_direction		#nr of stations that go one way (from A to B)
+	first_direction_stations = stations[0 : nr_stations] 	#split nr of stations based on how many stations the first direction has
 	second_direction_stations = stations[nr_stations:]
-	first_direction_timestamps = timestamps[0 : nr_stations]
+	first_direction_timestamps = timestamps[0 : nr_stations] #do the same for timestamps
 	second_direction_timestamps = timestamps[nr_stations:]
-	first_direction = dict(zip(first_direction_stations, first_direction_timestamps))
+
+	first_direction = dict(zip(first_direction_stations, first_direction_timestamps)) #buid a dictionary of the form {station1 : timestamp1, etc}
 	second_direction = dict(zip(second_direction_stations, second_direction_timestamps))
 
-	
-	first_direction_proto = first_direction
-	second_direction_proto = second_direction
-	first_direction_proto = make_iterated_dictionary(first_direction_proto)
-	first_direction_proto = make_iterated_dictionary(second_direction_proto)
-	dict_list_proto = [first_direction_proto, second_direction_proto]
-	#print("Dictionary for now: ", dict_list_proto)		
-	dict_proto = assign_destinations(dict_list_proto, destinations)
-	#print("Dictionary after assign destinations: ", dict_proto)
+	first_direction_iterated = make_iterated_dictionary(first_direction)	#assign an order to the stations, we need this order in firebase for easier parsing 
+	second_direction_iterated = make_iterated_dictionary(second_direction)	#firebase stores info alphabetically
 
-	dict_list = [first_direction, second_direction]
-	i = 0
-	for dest in destinations:
-		key = dest
-		value = dict_list[i]
-		i = i + 1
-		dictionary[key] = value
+	both_directions = [first_direction_iterated, second_direction_iterated]
+	completeRoute = assign_destinations(both_directions, destinations)	#for each of these two directions, assign their destinations name (ex: from A to B or from B to A)
 
-	#print("Dictionary as it should be: ", dictionary)
-	return [dictionary, dict_proto]
+	return completeRoute
 
 def parse_route(routeParam):	#1046
 	BASE = "http://86.125.113.218:61978/html/timpi/trasee.php?param1="
 	FULL_URL = BASE + str(routeParam)
-	#print(FULL_URL)
-
+	print("Accessing... ", FULL_URL)
 	html_text = requests.get(FULL_URL).text #do not forget to specify .text, otherwise you will only get the responde code 
 	soup = BeautifulSoup(html_text, "lxml") #make a new bs object and specify the parser (lxml in our case)
 
-	#Use methods built here:
 	destinations, stations, timestamps, number_of_stations_first_direction = better_fetch(soup)
-	both_directions, both_directions_proto = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
+	completeRoute = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
 
-	return both_directions, both_directions_proto
+	return completeRoute

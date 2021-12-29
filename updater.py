@@ -37,18 +37,25 @@ def updateTimesForRoute(routeName):
   routeInfo = getRouteInfo(routeName)
   if routeInfo:
     routeType, routeName, routeParam, routeNode = routeInfo
-    routeData, routeData_proto = parse_route(routeParam)
-    print("Before update: ")
-    for key in routeData_proto.keys():
-      print("For key: ", key)
-      print(routeData_proto[key].values())
-    
-    #routeDataPath = db.child("transports").child(routeType).child("route").child(routeName).child("data").set(routeData_proto)
-    print("Updated successfully!", routeName) 
+    routeData = parse_route(routeParam)
+    routeDataPath = db.child("transports").child(routeType).child("route").child(routeName).child("data").set(routeData)
+    print("Updated successfully: ", routeName)
+    return 0 
   else:
     print("Route nonexistent:", routeName)
-
+    return -1
 
 def updateAll():
   #go through all entries in database and update each
-  print("Cock and balls")
+  routes = getAllRoutesNames()
+  stop = 0
+  for key in routes.keys():
+    if stop:
+      break
+    for value in routes[key]:
+      print("Updating route: ", value)
+      result = updateTimesForRoute(str(value))  #just execute the above method on all routes
+      if result != 0:
+        stop = 1
+        print("Need to stop, route faulty: ", value)
+        break
