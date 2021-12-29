@@ -1,27 +1,51 @@
-import pyrebase
+#import pyrebase
+from actual_parser import *
+from database_config import *
+from data_initializer import initializeData
 
-config = {	
-  "apiKey": "AIzaSyA6pPg3YslzTehYge58ajEQxpmQ8fmbiJc",
-  "authDomain": "publictransportapp-fea50.firebaseapp.com",
-  "databaseURL": "https://publictransportapp-fea50-default-rtdb.europe-west1.firebasedatabase.app",
-  "projectId": "publictransportapp-fea50",
-  "storageBucket": "publictransportapp-fea50.appspot.com",
-  "messagingSenderId": "145206856336"
-}
-
-firebase = pyrebase.initialize_app(config)
-db = firebase.database()  
-
-
-url = "http://86.125.113.218:61978/html/timpi/trasee.php"
-example_route_33_param = "param1=1046"
-
-full_url = url + "?" + example_route_33_param
-
-print(full_url)
+db = getDatabase()    #get reference of our firebase realtime database
+initializeData(db)    #will setup all the corresponding params that need to be passed to the parser in order to fetch the stations, destinations etc
 
 allTramRoutes = db.child("transports").child("tram").child("route").get()
 print(allTramRoutes.val())
 for route in allTramRoutes.val():
 	route_id = db.child("transports").child("tram").child("route").child(route).get()
 	print(route_id.val())
+
+#parse_route(1046)
+
+def getAllRoutesInformation():
+  trams = db.child("transports").child("tram").child("route").get().val()
+  buses = db.child("transports").child("bus").child("route").get().val()
+  trolleys = db.child("transports").child("trolley").child("route").get().val()
+
+  allRoutes = dict()
+  allRoutes["trams"] = trams
+  allRoutes["buses"] = buses
+  allRoutes["trolleys"] = trolleys
+
+  return allRoutes
+
+def getAllRoutesNames(allRoutes):
+  names = dict()
+  for key in allRoutes.keys():
+    print("Routes for key: ", key)
+    print(allRoutes[key])
+    print("All keys for this kind of transport: ")
+    key_dict = key
+    values = allRoutes[key].keys() 
+    names[key_dict] = values
+    print("\n")
+
+  return names
+
+def updateRoute(routeName): #ex: 33B / 1 / E8
+  print("Need to fetch route ", routeName)
+
+updateRoute("33b")
+allRoutes = getAllRoutesInformation()
+
+names = getAllRoutesNames(allRoutes)
+
+
+#print("All routes values: ", allRoutes.values())

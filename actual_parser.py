@@ -20,19 +20,7 @@ def printMyList(someList):
 		i = i + 1
 	print("\n")
 
-url = "http://86.125.113.218:61978/html/timpi/trasee.php"
-example_route_33_param = "param1=1046"
-full_url = url + "?" + example_route_33_param
-print(full_url)
-
-
-html_text = requests.get(full_url).text #do not forget to specify .text, otherwise you will only get the responde code 
-soup = BeautifulSoup(html_text, "lxml") #make a new bs object and specify the parser (lxml in our case)
-
-
-
-
-def better_fetch():
+def better_fetch(soup):
 	destinations_for_this_route = []
 	stations_for_this_route = []
 	timestamps_for_this_route = []
@@ -50,7 +38,7 @@ def better_fetch():
 		if table.attrs['bgcolor'] == 'D8D8D8':							#hardcoded color, corresponds to stations + times
 			stations = table.find_all('td', attrs={'align' : 'left'}) 	#stations are alligned to the left
 			times = table.find_all('td', attrs={'align' : 'center'})	#times are alligned in the center
-			if len(stations) > 1 or len(times) > 1:	#they missed an </table> inside their html, so we have to do this instead
+			if len(stations) > 1 or len(times) > 1:	#they missed a </table> inside their html, so we have to do this instead
 				continue
 			for station in stations:
 				stations_for_this_route.append(station.text)
@@ -63,7 +51,6 @@ def better_fetch():
 	number_of_stations_first_direction = number_of_stations_both_ways[1] - 1 #need to decrement to show correct value
 
 	return [destinations_for_this_route, stations_for_this_route, timestamps_for_this_route, number_of_stations_first_direction]
-
 
 def build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction):
 	dictionary = dict()
@@ -87,9 +74,21 @@ def build_dictionary(destinations, stations, timestamps, number_of_stations_firs
 
 	return dictionary
 
-#Use methods built here:
-destinations, stations, timestamps, number_of_stations_first_direction = better_fetch()
-both_directions = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
-print("Both directions as dict: ")
-print(both_directions.keys())
-print(both_directions.values())
+def parse_route(routeParam):	#1046
+	BASE = "http://86.125.113.218:61978/html/timpi/trasee.php?param1="
+	FULL_URL = BASE + str(routeParam)
+	print(FULL_URL)
+
+	html_text = requests.get(FULL_URL).text #do not forget to specify .text, otherwise you will only get the responde code 
+	soup = BeautifulSoup(html_text, "lxml") #make a new bs object and specify the parser (lxml in our case)
+
+	#Use methods built here:
+	destinations, stations, timestamps, number_of_stations_first_direction = better_fetch(soup)
+	both_directions = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
+	print("Both directions as dict: ")
+	print(both_directions.keys())
+	print(both_directions.values())
+
+	return both_directions
+
+#parse_route(1046)
