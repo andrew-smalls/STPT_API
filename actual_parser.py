@@ -1,6 +1,14 @@
 from bs4 import BeautifulSoup
 import requests
 
+def sanitize_data(someList):
+	#print("Old list: ", someList)
+	for i, element in enumerate(someList):
+		if "." in element:
+			element = element.replace(".", "")
+			someList[i] = element
+	return someList
+
 def cleanTimeFormat(someList):
 	for element in someList:
 		if "Stația" in element:
@@ -49,8 +57,31 @@ def better_fetch(soup):
 	cleanTimestamps = cleanTimeFormat(timestamps_for_this_route)		#data arrives with some unwanted strings, clean first
 	timestamps_for_this_route = cleanAgain(cleanTimestamps)
 	number_of_stations_first_direction = number_of_stations_both_ways[1] - 1 #need to decrement to show correct value
-
+	sanitize_data(destinations_for_this_route)
+	sanitize_data(stations_for_this_route)
+	sanitize_data(timestamps_for_this_route)
 	return [destinations_for_this_route, stations_for_this_route, timestamps_for_this_route, number_of_stations_first_direction]
+
+def make_iterated_dictionary(someDict):
+	dictionary = dict()
+	i = 0
+	#print("Dictionary before: ", someDict)
+	
+	#dictionary = {key : value for key,value in zip(range(len(someDict)), someDict.items())}
+	dictionary = dict(zip(range(len(someDict)), someDict.items()))
+	#print("This new dict now: ", dictionary.items())
+
+	return dictionary
+
+def assign_destinations(someList, destinations):
+	dictionary = dict()
+	i = 0
+	for dest in destinations:
+		key = dest
+		value = someList[i]
+		i = i + 1
+		dictionary[key] = value
+	return dictionary
 
 def build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction):
 	dictionary = dict()
@@ -60,35 +91,40 @@ def build_dictionary(destinations, stations, timestamps, number_of_stations_firs
 	second_direction_stations = stations[nr_stations:]
 	first_direction_timestamps = timestamps[0 : nr_stations]
 	second_direction_timestamps = timestamps[nr_stations:]
-
 	first_direction = dict(zip(first_direction_stations, first_direction_timestamps))
 	second_direction = dict(zip(second_direction_stations, second_direction_timestamps))
+
+	
+	first_direction_proto = first_direction
+	second_direction_proto = second_direction
+	first_direction_proto = make_iterated_dictionary(first_direction_proto)
+	first_direction_proto = make_iterated_dictionary(second_direction_proto)
+	dict_list_proto = [first_direction_proto, second_direction_proto]
+	#print("Dictionary for now: ", dict_list_proto)		
+	dict_proto = assign_destinations(dict_list_proto, destinations)
+	#print("Dictionary after assign destinations: ", dict_proto)
 
 	dict_list = [first_direction, second_direction]
 	i = 0
 	for dest in destinations:
 		key = dest
-		value = dict_list[0]
+		value = dict_list[i]
 		i = i + 1
 		dictionary[key] = value
 
-	return dictionary
+	#print("Dictionary as it should be: ", dictionary)
+	return [dictionary, dict_proto]
 
 def parse_route(routeParam):	#1046
 	BASE = "http://86.125.113.218:61978/html/timpi/trasee.php?param1="
 	FULL_URL = BASE + str(routeParam)
-	print(FULL_URL)
+	#print(FULL_URL)
 
 	html_text = requests.get(FULL_URL).text #do not forget to specify .text, otherwise you will only get the responde code 
 	soup = BeautifulSoup(html_text, "lxml") #make a new bs object and specify the parser (lxml in our case)
 
 	#Use methods built here:
 	destinations, stations, timestamps, number_of_stations_first_direction = better_fetch(soup)
-	both_directions = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
-	print("Both directions as dict: ")
-	print(both_directions.keys())
-	print(both_directions.values())
+	both_directions, both_directions_proto = build_dictionary(destinations, stations, timestamps, number_of_stations_first_direction)
 
-	return both_directions
-
-#parse_route(1046)
+	return both_directions, both_directions_proto

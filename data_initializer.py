@@ -1,5 +1,3 @@
-#from database_config import *
-
 def initializeData(db):
   initializeTrams(db)
   initializeBuses(db)
@@ -18,7 +16,6 @@ def initializeTrams(db):
   "8" :{"param" : "1558"},
   "9" :{"param" : "2406"}
   }
-
   path = db.child("transports").child("tram").child("route").set(tram_dict)
 
 def initializeTrolleys(db):
@@ -34,7 +31,9 @@ def initializeTrolleys(db):
   "18" :{"param" : "1166"}
   }
 
-  path = db.child("transports").child("trolley").child("route").set(trolley_dict)
+  new_dict = {key.lower(): value for key, value in trolley_dict.items()}  #to lower for each key
+
+  path = db.child("transports").child("trolley").child("route").set(new_dict)
 
 def initializeBuses(db):
   bus_dict = {
@@ -70,4 +69,20 @@ def initializeBuses(db):
   "M43" :{"param" : "2646"}
   }
 
-  path = db.child("transports").child("bus").child("route").set(bus_dict)  
+  new_dict = {key.lower(): value for key, value in bus_dict.items()}  #to lower for each key
+
+  path = db.child("transports").child("bus").child("route").set(new_dict)  
+
+
+def getAllRoutesInformation(db):
+  trams = db.child("transports").child("tram").child("route").get().val()
+  buses = db.child("transports").child("bus").child("route").get().val()
+  trolleys = db.child("transports").child("trolley").child("route").get().val()
+
+  allRoutes = dict()
+  allRoutes["tram"] = trams
+  allRoutes["bus"] = buses
+  allRoutes["trolley"] = trolleys
+
+  return allRoutes
+
