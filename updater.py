@@ -33,19 +33,21 @@ def getRouteInfo(routeName, routeNames=None): #ex: 33B / 1 / E8
     print("\nSorry, no transports with that name")  
     return None
 
-def updateTimesForRoute(routeName):
+def updateTimesForRoute(routeName, verbose):
   routeInfo = getRouteInfo(routeName)
   if routeInfo:
     routeType, routeName, routeParam, routeNode = routeInfo
     routeData = parse_route(routeParam)
     routeDataPath = db.child("transports").child(routeType).child("route").child(routeName).child("data").set(routeData)
-    print("Updated successfully: ", routeName)
+    if verbose:
+      print("Updated successfully: ", routeName)
     return 0 
   else:
-    print("Route nonexistent:", routeName)
+    if verbose:
+      print("Route nonexistent:", routeName)
     return -1
 
-def updateAll():
+def updateAll(verbose=False):
   #go through all entries in database and update each
   routes = getAllRoutesNames()
   stop = 0
@@ -53,9 +55,11 @@ def updateAll():
     if stop:
       break
     for value in routes[key]:
-      print("Updating route: ", value)
-      result = updateTimesForRoute(str(value))  #just execute the above method on all routes
+      if verbose:
+        print("Updating route: ", value)
+      result = updateTimesForRoute(str(value), verbose)  #just execute the above method on all routes
       if result != 0:
         stop = 1
-        print("Need to stop, route faulty: ", value)
+        if verbose:
+          print("Need to stop, route faulty: ", value)
         break

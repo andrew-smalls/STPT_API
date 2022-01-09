@@ -99,7 +99,7 @@ def build_dictionary(destinations, stations, timestamps, number_of_stations_firs
 def parse_route(routeParam):	#1046
 	BASE = "http://86.125.113.218:61978/html/timpi/trasee.php?param1="
 	FULL_URL = BASE + str(routeParam)
-	print("Accessing... ", FULL_URL)
+	#print("Accessing... ", FULL_URL)
 	html_text = requests.get(FULL_URL).text #do not forget to specify .text, otherwise you will only get the responde code 
 	soup = BeautifulSoup(html_text, "lxml") #make a new bs object and specify the parser (lxml in our case)
 
