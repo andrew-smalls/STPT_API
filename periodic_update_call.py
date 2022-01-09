@@ -16,6 +16,6 @@ def do_every(period, function):#, *args):
         function()
 
 
-do_every(20, updateAll)
+do_every(30, updateAll)
 
 #updateAll(verbose=False)
